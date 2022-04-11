@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -49,7 +51,11 @@ class ProductScreenBody extends StatelessWidget {
                   top: 60,
                   left: 20,
                   child: IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      // Esborram possible imatge
+                      productsService.newPictureFile = null;
+                      Navigator.of(context).pop();
+                    },
                     icon: Icon(
                       Icons.arrow_back_ios_new,
                       size: 30,
@@ -75,6 +81,7 @@ class ProductScreenBody extends StatelessWidget {
                         print('No tenim imatge');
                       } else {
                         print('Tenim imatge ${photo.path}');
+                        productsService.updateSelectedProductImage(photo.path);
                       }
                     },
                     icon: Icon(
@@ -95,12 +102,21 @@ class ProductScreenBody extends StatelessWidget {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       floatingActionButton: FloatingActionButton(
-          child: Icon(Icons.save_outlined),
-          onPressed: (() async {
-            //TODO: Emmagatzemar producte
-            if (!productForm.isValidForm()) return;
-            await productsService.saveOrCreateProduct(productForm.tempProduct);
-          })),
+        child: productsService.isSaving
+            ? CircularProgressIndicator(color: Colors.white)
+            : Icon(Icons.save_outlined),
+        onPressed: productsService.isSaving
+            ? null
+            : () async {
+                //TODO: Emmagatzemar producte
+                if (!productForm.isValidForm()) return;
+                final String? imageUrl = await productsService.uploadImage();
+                if (imageUrl != null)
+                  productForm.tempProduct.picture = imageUrl;
+                await productsService
+                    .saveOrCreateProduct(productForm.tempProduct);
+              },
+      ),
     );
   }
 }

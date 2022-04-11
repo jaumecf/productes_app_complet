@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:productes_app/models/models.dart';
@@ -12,6 +13,8 @@ class ProductsService extends ChangeNotifier {
 
   bool isLoading = true;
   bool isSaving = false;
+
+  File? newPictureFile;
 
   //TODO: fetch dels productes
 
@@ -83,5 +86,40 @@ class ProductsService extends ChangeNotifier {
     // Falta posar ID del producte
     this.products.add(product);
     return product.id!;
+  }
+
+  void updateSelectedProductImage(String path) async {
+    this.selectedProduct.picture = path;
+    this.newPictureFile = new File.fromUri(Uri(path: path));
+
+    notifyListeners();
+  }
+
+  Future<String?> uploadImage() async {
+    //Upload to Cloudinary
+    if (this.newPictureFile == null) return null;
+
+    this.isSaving = true;
+    notifyListeners();
+
+    final url = Uri.parse(
+        'https://api.cloudinary.com/v1_1/cifp-pau-casesnoves/image/upload?upload_preset=hn0p8z0z');
+    final imageUploadRequest = await http.MultipartRequest('POST', url);
+    final file =
+        await http.MultipartFile.fromPath('file', newPictureFile!.path);
+
+    imageUploadRequest.files.add(file);
+
+    final streamResponse = await imageUploadRequest.send();
+    final response = await http.Response.fromStream(streamResponse);
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      print('Hi ha hagut algun error');
+      print(response.body);
+      return null;
+    }
+
+    final decodedData = json.decode(response.body);
+    return decodedData['secure_url'];
   }
 }
