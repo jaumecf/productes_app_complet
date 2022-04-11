@@ -8,8 +8,10 @@ class ProductsService extends ChangeNotifier {
   final String _baseUrl =
       "flutter-dev-a6fa0-default-rtdb.europe-west1.firebasedatabase.app";
   final List<Product> products = [];
+  late Product selectedProduct;
 
   bool isLoading = true;
+  bool isSaving = false;
 
   //TODO: fetch dels productes
 
@@ -39,5 +41,47 @@ class ProductsService extends ChangeNotifier {
     this.isLoading = false;
     notifyListeners();
     return this.products;
+  }
+
+  Future saveOrCreateProduct(Product product) async {
+    isSaving = true;
+    notifyListeners();
+
+    if (product.id == null) {
+      //Cream el producte
+      await this.createProduct(product);
+    } else {
+      //Actualitzam un producte
+      await this.updateProduct(product);
+    }
+
+    isSaving = false;
+    notifyListeners();
+  }
+
+  Future<String> updateProduct(Product product) async {
+    final url = Uri.https(_baseUrl, 'products/${product.id}.json');
+    final response = await http.put(url, body: product.toJson());
+    final decodedData = response.body;
+    //print(decodedData);
+
+    final index =
+        this.products.indexWhere((element) => element.id == product.id);
+    this.products[index] = product;
+    //Sense aquest noti, no funciona correctament
+    //notifyListeners();
+    return product.id!;
+  }
+
+  Future<String> createProduct(Product product) async {
+    final url = Uri.https(_baseUrl, 'products.json');
+    final response = await http.post(url, body: product.toJson());
+    final decodedData = json.decode(response.body);
+    print(decodedData);
+    product.id = decodedData['name'];
+
+    // Falta posar ID del producte
+    this.products.add(product);
+    return product.id!;
   }
 }

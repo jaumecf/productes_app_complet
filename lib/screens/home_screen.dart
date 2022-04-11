@@ -4,6 +4,8 @@ import 'package:productes_app/services/products_service.dart';
 import 'package:productes_app/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
+import '../models/models.dart';
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -24,12 +26,20 @@ class HomeScreen extends StatelessWidget {
           child: ProductCard(
             product: productService.products[index],
           ),
-          onTap: () => Navigator.of(context).pushNamed('product'),
+          onTap: () {
+            productService.selectedProduct =
+                productService.products[index].copy();
+            Navigator.of(context).pushNamed('product');
+          },
         ),
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
-        onPressed: () {},
+        onPressed: () {
+          productService.selectedProduct =
+              new Product(available: true, name: '', price: 0);
+          Navigator.pushNamed(context, 'product');
+        },
       ),
     );
   }
